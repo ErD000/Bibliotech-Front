@@ -1,6 +1,6 @@
 import 'dart:convert';
-import 'package:bookshelf/cloud_book_screen.dart';
-import 'package:bookshelf/profile_page.dart';
+import 'package:bibliotech2/cloud_book_screen.dart';
+import 'package:bibliotech2/profile_page.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:flutter/material.dart';
 import 'package:file_picker/file_picker.dart';
