@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'dart:io';
 import 'package:confetti/confetti.dart';  // Importer la bibliothèque de confettis
+import 'package:shared_preferences/shared_preferences.dart';
 
 class ProfileScreen extends StatefulWidget {
   @override
@@ -20,9 +21,31 @@ class _ProfileScreenState extends State<ProfileScreen> {
   final _nameController = TextEditingController();
   final _emailController = TextEditingController();
 
+  int totalPagesRead = 100; // Total pages read
+  int totalBookPages = 0; // Total book pages
+
+
+  Future<void> _loadStatistics() async {
+    final prefs = await SharedPreferences.getInstance();
+
+    // Récupérez le nombre total de pages lues
+    final savedTotalPagesRead = prefs.getInt('totalPagesRead') ?? 0;
+    print("Total pages read from SharedPreferences: $savedTotalPagesRead");  // Log du nombre de pages lues récupérées
+
+    // Récupérez le nombre total de pages des livres
+    final savedTotalBookPages = prefs.getInt('totalBookPages') ?? 0;
+    print("Total book pages from SharedPreferences: $savedTotalBookPages");  // Log du nombre total de pages des livres récupérées
+
+    setState(() {
+      totalPagesRead = savedTotalPagesRead;
+      totalBookPages = savedTotalBookPages;
+    });
+  }
+
   @override
   void initState() {
     super.initState();
+    _loadStatistics();
     _nameController.text = name;
     _emailController.text = email;
 
@@ -176,7 +199,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          _statItem("1200", "Pages lues"),
+          _statItem(totalPagesRead.toString(), "Pages lues"),
           _statItem("45", "Livres"),
         ],
       ),
