@@ -216,7 +216,7 @@ class _RegisterScreenState extends State<Registerscreen> {
 
     try {
       // Adresse mise à jour : utilisez l'adresse IP locale de votre machine
-      final uri = Uri.parse('https://bookworm.lich.fr/api/register_users');
+      final uri = Uri.parse('http://10.0.6.2:3000/api/register_users');
       print('[DEBUG] Envoi de la requête à $uri');
 
       final response = await http

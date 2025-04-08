@@ -8,6 +8,7 @@ import './RegisterScreen.dart';
 import './book_utils.dart';
 
 class LoginScreen extends StatefulWidget {
+
   @override
   _LoginScreenState createState() => _LoginScreenState();
 }
@@ -181,7 +182,7 @@ class _LoginScreenState extends State<LoginScreen> {
     }
 
     try {
-      final uri = Uri.parse('https://bookworm.lich.fr/api/login_users');
+      final uri = Uri.parse('http://10.0.6.2:3000/api/login_users');
       print('[DEBUG] Envoi de la requête à $uri');
 
       final response = await http

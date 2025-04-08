@@ -412,7 +412,7 @@ class _BookListScreenState extends State<BookListScreen> {
         if (token == null) throw Exception('Token not available.');
 
         // Tentative d'upload du fichier vers le serveur
-        final uri = Uri.parse('https://bookworm.lich.fr/api/add_book');
+        final uri = Uri.parse('http://10.0.6.2:3000/api/add_book');
         final request = http.MultipartRequest('POST', uri);
         request.fields['token'] = token;
         request.fields['fileHash'] = fileHash;

@@ -31,7 +31,7 @@ class _CloudBookScreenState extends State<CloudBookScreen> {
       throw Exception("Token manquant ou invalide.");
     }
 
-    final String url = "https://bookworm.lich.fr/api/get_library";
+    final String url = "http://10.0.6.2:3000/api/get_library";
 
     try {
       final response = await http.get(
@@ -112,7 +112,7 @@ class _CloudBookScreenState extends State<CloudBookScreen> {
       return;
     }
 
-    final String url = "https://bookworm.lich.fr/api/download_book";
+    final String url = "http://10.0.6.2:3000/api/download_book";
 
     try {
       // Obtenir l'UUID de l'utilisateur à partir du token
@@ -162,7 +162,7 @@ class _CloudBookScreenState extends State<CloudBookScreen> {
       return;
     }
 
-    final String url = "https://bookworm.lich.fr/api/delete_book";
+    final String url = "http://10.0.6.2:3000/api/delete_book";
 
     try {
       final response = await http.delete(
