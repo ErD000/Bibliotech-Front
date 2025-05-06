@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'dart:io';
-import 'package:confetti/confetti.dart';  // Importer la bibliothèque de confettis
+import 'dart:convert';
+import 'package:confetti/confetti.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 class ProfileScreen extends StatefulWidget {
@@ -10,31 +11,26 @@ class ProfileScreen extends StatefulWidget {
 }
 
 class _ProfileScreenState extends State<ProfileScreen> {
-  String name = "Nicolas Adams";
-  String email = "nicolasadams@gmail.com";
+  String name = "";
+  String email = "";
   File? _imageFile;
 
-  // Déclaration de ConfettiController
   late ConfettiController _confettiController;
 
   final _formKey = GlobalKey<FormState>();
   final _nameController = TextEditingController();
   final _emailController = TextEditingController();
 
-  int totalPagesRead = 100; // Total pages read
-  int totalBookPages = 0; // Total book pages
-
+  int totalPagesRead = 100;
+  int totalBookPages = 0;
 
   Future<void> _loadStatistics() async {
     final prefs = await SharedPreferences.getInstance();
-
-    // Récupérez le nombre total de pages lues
     final savedTotalPagesRead = prefs.getInt('totalPagesRead') ?? 0;
-    print("Total pages read from SharedPreferences: $savedTotalPagesRead");  // Log du nombre de pages lues récupérées
-
-    // Récupérez le nombre total de pages des livres
     final savedTotalBookPages = prefs.getInt('totalBookPages') ?? 0;
-    print("Total book pages from SharedPreferences: $savedTotalBookPages");  // Log du nombre total de pages des livres récupérées
+
+    print("Total pages read from SharedPreferences: $savedTotalPagesRead");
+    print("Total book pages from SharedPreferences: $savedTotalBookPages");
 
     setState(() {
       totalPagesRead = savedTotalPagesRead;
@@ -42,19 +38,44 @@ class _ProfileScreenState extends State<ProfileScreen> {
     });
   }
 
+  Future<void> _loadUserFromToken() async {
+    final prefs = await SharedPreferences.getInstance();
+    final token = prefs.getString('token');
+    if (token == null) {
+      print('[ERREUR] Aucun token trouvé.');
+      return;
+    }
+
+    try {
+      final parts = token.split('.');
+      if (parts.length != 3) throw FormatException("Format JWT invalide");
+
+      final payload = utf8.decode(base64.decode(base64.normalize(parts[1])));
+      final data = jsonDecode(payload);
+
+      setState(() {
+        name = data['user'] ?? name;
+        email = data['email'] ?? email;
+      });
+
+      print('[INFO] Utilisateur chargé depuis le token : $name, $email');
+    } catch (e) {
+      print('[ERREUR] Impossible de décoder le token : $e');
+    }
+  }
+
   @override
   void initState() {
     super.initState();
     _loadStatistics();
+    _loadUserFromToken(); // Charge nom et email du token
     _nameController.text = name;
     _emailController.text = email;
 
-    // Initialisation de ConfettiController
     _confettiController = ConfettiController(duration: const Duration(seconds: 1));
 
-    // Lancer l'animation de confettis lors de l'initialisation de la page
     Future.delayed(Duration(milliseconds: 300), () {
-      _confettiController.play();  // Démarre l'animation après le délai
+      _confettiController.play();
     });
   }
 
@@ -87,23 +108,20 @@ class _ProfileScreenState extends State<ProfileScreen> {
           },
         ),
       ),
-      body: Stack(  // Utiliser Stack pour superposer l'animation de confettis
+      body: Stack(
         children: [
-          // Animation de confettis en arrière-plan
           Positioned.fill(
             child: ConfettiWidget(
               confettiController: _confettiController,
-              blastDirectionality: BlastDirectionality.explosive,  // Direction de l'explosion
-              particleDrag: 0.05,  // Résistance des particules
-              emissionFrequency: 0.05,  // Fréquence d'émission des particules
-              numberOfParticles: 20,  // Nombre de particules
-              gravity: 0.1,  // Gravité des particules
-              shouldLoop: true,  // Si l'animation doit boucler ou non
-              blastDirection: 3.14,  // Direction des confettis
+              blastDirectionality: BlastDirectionality.explosive,
+              particleDrag: 0.05,
+              emissionFrequency: 0.05,
+              numberOfParticles: 20,
+              gravity: 0.1,
+              shouldLoop: true,
+              blastDirection: 3.14,
             ),
           ),
-
-          // Le contenu de la page
           SingleChildScrollView(
             child: Padding(
               padding: const EdgeInsets.all(20.0),
@@ -125,7 +143,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
     );
   }
 
-  // Section de profil avec avatar et icône d'édition
   Widget _buildProfileSection() {
     return Container(
       padding: EdgeInsets.all(20),
@@ -165,7 +182,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
     );
   }
 
-  // Section Rank #X avec icône
   Widget _buildRankSection() {
     return Container(
       padding: EdgeInsets.all(20),
@@ -187,7 +203,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
     );
   }
 
-  // Section Statistiques avec icônes et données
   Widget _buildStatsSection() {
     return Container(
       padding: EdgeInsets.all(20),
@@ -206,24 +221,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
     );
   }
 
-  // Menu avec icônes et actions
-  Widget _buildMenu(BuildContext context) {
-    return Column(
-      children: [
-        _buildMenuItem(Icons.info, "À propos", context, () {
-          _showDialog(context, "À propos", "BookShelf\nVersion 1.0\nUne application pour gérer vos lectures.");
-        }),
-        _buildMenuItem(Icons.help, "Aide", context, () {
-          _showDialog(context, "Aide", "Besoin d'aide ?\nConsultez notre site ou contactez-nous.");
-        }),
-        _buildMenuItem(Icons.logout, "Déconnexion", context, () {
-          _showLogoutDialog(context);
-        }, color: Colors.red),
-      ],
-    );
-  }
-
-  // Widget pour un item de statistique
   Widget _statItem(String number, String label) {
     return Column(
       children: [
@@ -240,7 +237,22 @@ class _ProfileScreenState extends State<ProfileScreen> {
     );
   }
 
-  // Widget pour un élément du menu
+  Widget _buildMenu(BuildContext context) {
+    return Column(
+      children: [
+        _buildMenuItem(Icons.info, "À propos", context, () {
+          _showDialog(context, "À propos", "BookShelf\nVersion 1.0\nUne application pour gérer vos lectures.");
+        }),
+        _buildMenuItem(Icons.help, "Aide", context, () {
+          _showDialog(context, "Aide", "Besoin d'aide ?\nConsultez notre site ou contactez-nous.");
+        }),
+        _buildMenuItem(Icons.logout, "Déconnexion", context, () {
+          _showLogoutDialog(context);
+        }, color: Colors.red),
+      ],
+    );
+  }
+
   Widget _buildMenuItem(IconData icon, String title, BuildContext context, VoidCallback onTap, {Color color = Colors.black}) {
     return ListTile(
       leading: Icon(icon, color: color),
@@ -250,7 +262,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
     );
   }
 
-  // Afficher un dialogue pour modifier le profil
   void _showEditDialog() {
     showDialog(
       context: context,
@@ -261,7 +272,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              // Nom
               TextFormField(
                 controller: _nameController,
                 decoration: InputDecoration(labelText: "Nom"),
@@ -273,7 +283,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 },
               ),
               SizedBox(height: 10),
-              // Email
               TextFormField(
                 controller: _emailController,
                 decoration: InputDecoration(labelText: "Email"),
@@ -285,7 +294,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 },
               ),
               SizedBox(height: 10),
-              // Image upload
               ElevatedButton(
                 onPressed: () async {
                   final picker = ImagePicker();
@@ -323,7 +331,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
     );
   }
 
-  // Afficher un dialogue à propos
   void _showDialog(BuildContext context, String title, String content) {
     showDialog(
       context: context,
@@ -340,7 +347,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
     );
   }
 
-  // Afficher un dialogue pour la déconnexion
   void _showLogoutDialog(BuildContext context) {
     showDialog(
       context: context,
@@ -354,8 +360,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
           ),
           TextButton(
             onPressed: () {
-              // Logique de déconnexion ici
               Navigator.pop(context);
+              // Ajouter ici la logique réelle de déconnexion si nécessaire
             },
             child: Text("Oui, déconnecter"),
           ),

@@ -26,7 +26,7 @@ Future<List<Map<String, dynamic>>> loadUserBooks(String token) async {
       print('[ERREUR] Impossible de récupérer les livres, user_uuid introuvable.');
       return [];
     }
-
+    print('[INFO] Token récupéré : $token');
     final directory = await getApplicationDocumentsDirectory();
     final userDirectory = Directory('${directory.path}/BookShelf/$userUuid');
     print('USER DIRECTORY : ');
