@@ -247,62 +247,53 @@ class _ProfileScreenState extends State<ProfileScreen> {
   }
 
   void _showEditDialog() {
+    _nameController.text = name;   // Remettre les valeurs actuelles à chaque ouverture
+    _emailController.text = email;
+
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
         title: Text("Modifier le profil"),
-        content: Form(
-          key: _formKey,
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              TextFormField(
-                controller: _nameController,
-                decoration: InputDecoration(labelText: "Nom"),
-                validator: (value) {
-                  if (value == null || value.isEmpty) {
-                    return 'Veuillez entrer un nom';
-                  }
-                  return null;
-                },
-              ),
-              SizedBox(height: 10),
-              TextFormField(
-                controller: _emailController,
-                decoration: InputDecoration(labelText: "Email"),
-                validator: (value) {
-                  if (value == null || value.isEmpty) {
-                    return 'Veuillez entrer un email';
-                  }
-                  return null;
-                },
-              ),
-              SizedBox(height: 10),
-              ElevatedButton(
-                onPressed: () async {
-                  final picker = ImagePicker();
-                  final pickedFile = await picker.pickImage(source: ImageSource.gallery);
-                  if (pickedFile != null) {
-                    setState(() {
-                      _imageFile = File(pickedFile.path);
-                    });
-                  }
-                },
-                child: Text("Choisir une image"),
-              ),
-            ],
-          ),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            TextField(
+              controller: _nameController,
+              decoration: InputDecoration(labelText: "Nom"),
+            ),
+            SizedBox(height: 10),
+            TextField(
+              controller: _emailController,
+              decoration: InputDecoration(labelText: "Email"),
+            ),
+            SizedBox(height: 10),
+            ElevatedButton(
+              onPressed: () async {
+                final picker = ImagePicker();
+                final pickedFile = await picker.pickImage(source: ImageSource.gallery);
+                if (pickedFile != null) {
+                  setState(() {
+                    _imageFile = File(pickedFile.path);
+                  });
+                }
+              },
+              child: Text("Choisir une image"),
+            ),
+          ],
         ),
         actions: [
           TextButton(
             onPressed: () {
-              if (_formKey.currentState!.validate()) {
-                setState(() {
-                  name = _nameController.text;
-                  email = _emailController.text;
-                });
-                Navigator.pop(context);
-              }
+              setState(() {
+                // Met à jour uniquement si le champ n'est pas vide et a changé
+                if (_nameController.text.trim().isNotEmpty && _nameController.text.trim() != name) {
+                  name = _nameController.text.trim();
+                }
+                if (_emailController.text.trim().isNotEmpty && _emailController.text.trim() != email) {
+                  email = _emailController.text.trim();
+                }
+              });
+              Navigator.pop(context);
             },
             child: Text("Sauvegarder"),
           ),
@@ -314,6 +305,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
       ),
     );
   }
+
 
   void _showDialog(BuildContext context, String title, String content) {
     showDialog(
