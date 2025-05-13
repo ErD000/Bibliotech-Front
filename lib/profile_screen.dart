@@ -4,6 +4,7 @@ import 'dart:io';
 import 'dart:convert';
 import 'package:confetti/confetti.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'LoginScreen.dart';
 
 class ProfileScreen extends StatefulWidget {
   @override
@@ -342,9 +343,14 @@ class _ProfileScreenState extends State<ProfileScreen> {
             child: Text("Annuler"),
           ),
           TextButton(
-            onPressed: () {
-              Navigator.pop(context);
-              // Ajouter ici la logique réelle de déconnexion si nécessaire
+            onPressed: () async {
+              final prefs = await SharedPreferences.getInstance();
+              await prefs.clear(); // Supprimer le token et autres données
+
+              Navigator.of(context).pushAndRemoveUntil(
+                MaterialPageRoute(builder: (_) => LoginScreen()),
+                    (route) => false,
+              );
             },
             child: Text("Oui, déconnecter"),
           ),
