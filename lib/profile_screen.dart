@@ -24,6 +24,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
   int totalPagesRead = 100;
   int totalBookPages = 0;
 
+  int rank = 0;     // Ajouté
+  int points = 0;   // Ajouté
+
   Future<void> _loadStatistics() async {
     final prefs = await SharedPreferences.getInstance();
     final savedTotalPagesRead = prefs.getInt('totalPagesRead') ?? 0;
@@ -56,9 +59,11 @@ class _ProfileScreenState extends State<ProfileScreen> {
       setState(() {
         name = data['user'] ?? name;
         email = data['email'] ?? email;
+        rank = data['rank'] ?? 0;       // Ajouté
+        points = data['points'] ?? 0;   // Ajouté
       });
 
-      print('[INFO] Utilisateur chargé depuis le token : $name, $email');
+      print('[INFO] Utilisateur chargé depuis le token : $name, $email, Rank: $rank, Points: $points');
     } catch (e) {
       print('[ERREUR] Impossible de décoder le token : $e');
     }
@@ -68,7 +73,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
   void initState() {
     super.initState();
     _loadStatistics();
-    _loadUserFromToken(); // Charge nom et email du token
+    _loadUserFromToken();
     _nameController.text = name;
     _emailController.text = email;
 
@@ -129,8 +134,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 children: [
                   _buildProfileSection(),
                   SizedBox(height: 30),
-                  _buildRankSection(),
-                  SizedBox(height: 30),
                   _buildStatsSection(),
                   SizedBox(height: 30),
                   _buildMenu(context),
@@ -182,27 +185,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
     );
   }
 
-  Widget _buildRankSection() {
-    return Container(
-      padding: EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(20),
-        boxShadow: [BoxShadow(color: Colors.black26, blurRadius: 10)],
-      ),
-      child: Row(
-        children: [
-          Text(
-            "Rank #42",
-            style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
-          ),
-          Spacer(),
-          Icon(Icons.star, color: Colors.amber),
-        ],
-      ),
-    );
-  }
-
   Widget _buildStatsSection() {
     return Container(
       padding: EdgeInsets.all(20),
@@ -212,10 +194,11 @@ class _ProfileScreenState extends State<ProfileScreen> {
         boxShadow: [BoxShadow(color: Colors.black26, blurRadius: 10)],
       ),
       child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        mainAxisAlignment: MainAxisAlignment.spaceAround,
         children: [
           _statItem(totalPagesRead.toString(), "Pages lues"),
-          _statItem("45", "Livres"),
+          _statItem(points.toString(), "Points"),       // Ajouté
+          _statItem(rank.toString(), "Rang"),           // Ajouté
         ],
       ),
     );
