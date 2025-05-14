@@ -5,6 +5,8 @@ import 'dart:convert';
 import 'package:confetti/confetti.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'LoginScreen.dart';
+import 'package:http/http.dart' as http;
+
 
 class ProfileScreen extends StatefulWidget {
   @override
@@ -68,6 +70,37 @@ class _ProfileScreenState extends State<ProfileScreen> {
     } catch (e) {
       print('[ERREUR] Impossible de décoder le token : $e');
     }
+  }
+  Future<bool> _updateUsername(String newName) async {
+    final prefs = await SharedPreferences.getInstance();
+    final token = prefs.getString('token');
+
+    final response = await http.post(
+      Uri.parse('http://10.0.6.2:3000/api/update_username'),
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': 'Bearer $token',
+      },
+      body: jsonEncode({'username': newName}),
+    );
+
+    return response.statusCode == 200;
+  }
+
+  Future<bool> _updateEmail(String newEmail) async {
+    final prefs = await SharedPreferences.getInstance();
+    final token = prefs.getString('token');
+
+    final response = await http.post(
+      Uri.parse('http://10.0.6.2:3000/api/update_email'),
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': 'Bearer $token',
+      },
+      body: jsonEncode({'email': newEmail}),
+    );
+
+    return response.statusCode == 200;
   }
 
   @override
@@ -283,20 +316,52 @@ class _ProfileScreenState extends State<ProfileScreen> {
         ),
         actions: [
           TextButton(
-            onPressed: () {
-              setState(() {
-                // Met à jour uniquement si le champ n'est pas vide et a changé
-                if (_nameController.text.trim().isNotEmpty && _nameController.text.trim() != name) {
-                  name = _nameController.text.trim();
+            onPressed: () async {
+              final newName = _nameController.text.trim();
+              final newEmail = _emailController.text.trim();
+
+              bool hasChanges = false;
+
+              if (newName.isNotEmpty && newName != name) {
+                final success = await _updateUsername(newName);
+                if (success) {
+                  // ✅ Nom mis à jour avec succès côté serveur
+                  setState(() {
+                    name = newName;
+                  });
+                  hasChanges = true;
+                } else {
+                  // ❌ Échec de la mise à jour du nom côté serveur
+                  print('[ERREUR] Échec mise à jour du nom');
                 }
-                if (_emailController.text.trim().isNotEmpty && _emailController.text.trim() != email) {
-                  email = _emailController.text.trim();
+              }
+
+              if (newEmail.isNotEmpty && newEmail != email) {
+                final success = await _updateEmail(newEmail);
+                if (success) {
+                  // ✅ Email mis à jour avec succès côté serveur
+                  setState(() {
+                    email = newEmail;
+                  });
+                  hasChanges = true;
+                } else {
+                  // ❌ Échec de la mise à jour de l’email côté serveur
+                  print('[ERREUR] Échec mise à jour de l\'email');
                 }
-              });
+              }
+
+              if (hasChanges) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(content: Text('Profil mis à jour')),
+                );
+              }
+
               Navigator.pop(context);
             },
             child: Text("Sauvegarder"),
           ),
+
+
           TextButton(
             onPressed: () => Navigator.pop(context),
             child: Text("Annuler"),

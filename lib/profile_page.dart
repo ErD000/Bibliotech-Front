@@ -1,7 +1,8 @@
-import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
-import 'package:confetti/confetti.dart';  // Importer la bibliothèque confetti
-import 'Model/user_model.dart';
+import 'package:confetti/confetti.dart';
+import 'dart:convert';
+import 'package:http/http.dart' as http;
+import 'Model/leaderboard_user.dart';
 
 class ProfilePage extends StatefulWidget {
   const ProfilePage({super.key});
@@ -11,24 +12,37 @@ class ProfilePage extends StatefulWidget {
 }
 
 class _ProfilePageState extends State<ProfilePage> {
-  // Déclaration du ConfettiController
   late ConfettiController _confettiController;
+  List<LeaderboardUser> leaderboardUsers = [];
 
   @override
   void initState() {
     super.initState();
-    // Initialisation de ConfettiController
     _confettiController = ConfettiController(duration: const Duration(seconds: 1));
-
-    // Lancer l'animation de confettis
     Future.delayed(Duration(milliseconds: 300), () {
-      _confettiController.play();  // Démarre l'animation après un délai
+      _confettiController.play();
     });
+    _fetchLeaderboard();
+  }
+
+  Future<void> _fetchLeaderboard() async {
+    final response = await http.get(Uri.parse('http://10.0.6.2:3000/api/scoreboard/get_leaderboard'));
+
+    if (response.statusCode == 200) {
+      final jsonData = json.decode(response.body);
+      final List<dynamic> data = jsonData['leaderboard'];
+
+      setState(() {
+        leaderboardUsers = data.map((json) => LeaderboardUser.fromJson(json)).toList();
+      });
+    } else {
+      print("Erreur de chargement: ${response.statusCode}");
+    }
   }
 
   @override
   void dispose() {
-    _confettiController.dispose();  // Nettoyage
+    _confettiController.dispose();
     super.dispose();
   }
 
@@ -38,7 +52,7 @@ class _ProfilePageState extends State<ProfilePage> {
       appBar: AppBar(
         backgroundColor: Colors.black,
         iconTheme: IconThemeData(color: Colors.white),
-        title: Text(
+        title: const Text(
           'Leaderboard',
           style: TextStyle(
             fontFamily: 'Georgia',
@@ -51,21 +65,18 @@ class _ProfilePageState extends State<ProfilePage> {
       ),
       body: Stack(
         children: [
-          // Animation des confettis en arrière-plan
           Positioned.fill(
             child: ConfettiWidget(
               confettiController: _confettiController,
-              blastDirectionality: BlastDirectionality.explosive,  // Direction de l'explosion
-              particleDrag: 0.05,  // Résistance des particules
-              emissionFrequency: 0.05,  // Fréquence des particules
-              numberOfParticles: 30,  // Nombre de particules
-              gravity: 0.1,  // Gravité des particules
-              shouldLoop: true,  // Si l'animation doit boucler ou non
-              blastDirection: 3.14,  // Direction des confettis
+              blastDirectionality: BlastDirectionality.explosive,
+              particleDrag: 0.05,
+              emissionFrequency: 0.05,
+              numberOfParticles: 30,
+              gravity: 0.1,
+              shouldLoop: true,
+              blastDirection: 3.14,
             ),
           ),
-
-          // Contenu principal de la page
           Align(
             alignment: Alignment.bottomCenter,
             child: Container(
@@ -78,120 +89,116 @@ class _ProfilePageState extends State<ProfilePage> {
                   topLeft: Radius.circular(20),
                 ),
               ),
-              child: ListView.builder(
-                  shrinkWrap: true,
-                  physics: const BouncingScrollPhysics(),
-                  itemCount: userItems.length,
-                  itemBuilder: (context, index) {
-                    final items = userItems[index];
-                    return Padding(
-                      padding: const EdgeInsets.only(
-                          right: 20, left: 20, bottom: 15),
-                      child: Row(
-                        children: [
-                          Text(
-                            items.rank,
-                            style: const TextStyle(
-                              fontSize: 16,
-                              fontWeight: FontWeight.bold,
-                            ),
+              child: leaderboardUsers.isEmpty
+                  ? Center(child: CircularProgressIndicator())
+                  : ListView.builder(
+                shrinkWrap: true,
+                physics: const BouncingScrollPhysics(),
+                itemCount: leaderboardUsers.length,
+                itemBuilder: (context, index) {
+                  final user = leaderboardUsers[index];
+                  return Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+                    child: Row(
+                      children: [
+                        Text(
+                          "${user.rank}",
+                          style: const TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.bold,
                           ),
-                          const SizedBox(
-                            width: 15,
-                          ),
-                          CircleAvatar(
-                            radius: 25,
-                            backgroundImage: AssetImage(items.image),
-                          ),
-                          const SizedBox(
-                            width: 15,
-                          ),
-                          Text(
-                            items.name,
+                        ),
+                        const SizedBox(width: 15),
+                        CircleAvatar(
+                          radius: 25,
+                          backgroundImage: AssetImage("Images/default_avatar.png"),
+                        ),
+                        const SizedBox(width: 15),
+                        Expanded(
+                          child: Text(
+                            user.firstName,
+                            overflow: TextOverflow.ellipsis,
                             style: const TextStyle(
                               fontSize: 17,
                               fontWeight: FontWeight.w500,
                             ),
                           ),
-                          const Spacer(),
-                          Container(
-                            height: 25,
-                            width: 70,
-                            decoration: BoxDecoration(
-                                color: Colors.black12,
-                                borderRadius: BorderRadius.circular(50)),
-                            child: Row(
-                              children: [
-                                const SizedBox(
-                                  width: 5,
+                        ),
+                        Container(
+                          padding: EdgeInsets.symmetric(horizontal: 8, vertical: 5),
+                          decoration: BoxDecoration(
+                            color: Colors.black12,
+                            borderRadius: BorderRadius.circular(50),
+                          ),
+                          child: Row(
+                            children: [
+                              const RotatedBox(
+                                quarterTurns: 1,
+                                child: Icon(
+                                  Icons.back_hand,
+                                  size: 14,
+                                  color: Color.fromARGB(255, 255, 187, 0),
                                 ),
-                                const RotatedBox(
-                                  quarterTurns: 1,
-                                  child: Icon(
-                                    Icons.back_hand,
-                                    color: Color.fromARGB(255, 255, 187, 0),
-                                  ),
+                              ),
+                              const SizedBox(width: 5),
+                              Text(
+                                "${user.points}",
+                                style: const TextStyle(
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 12,
+                                  color: Colors.black,
                                 ),
-                                const SizedBox(
-                                  width: 5,
-                                ),
-                                Text(
-                                  items.point.toString(),
-                                  style: const TextStyle(
-                                      fontWeight: FontWeight.bold,
-                                      fontSize: 10,
-                                      color: Colors.black),
-                                ),
-                              ],
-                            ),
-                          )
-                        ],
-                      ),
-                    );
-                  }
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
+                  );
+                },
               ),
             ),
           ),
-
-          // Classement des utilisateurs (positionné)
-          Positioned(
-            top: 40,
-            right: 155,
-            child: rank(
+          if (leaderboardUsers.length >= 3) ...[
+            Positioned(
+              top: 40,
+              right: 155,
+              child: rank(
                 radius: 45.0,
                 height: 25,
                 image: "Images/e.jpeg",
-                name: "Johnny Rios",
-                point: "23131"),
-          ),
-          // Pour le 2ème rang
-          Positioned(
-            top: 70,
-            left: 45,
-            child: rank(
+                name: leaderboardUsers[0].firstName,
+                point: "${leaderboardUsers[0].points}",
+              ),
+            ),
+            Positioned(
+              top: 70,
+              left: 45,
+              child: rank(
                 radius: 30.0,
                 height: 10,
                 image: "Images/k.jpeg",
-                name: "Hodges",
-                point: "12323"),
-          ),
-          // Pour le 3ème rang
-          Positioned(
-            top: 70,
-            right: 70,
-            child: rank(
+                name: leaderboardUsers[1].firstName,
+                point: "${leaderboardUsers[1].points}",
+              ),
+            ),
+            Positioned(
+              top: 70,
+              right: 70,
+              child: rank(
                 radius: 30.0,
                 height: 10,
                 image: "Images/j.jpeg",
-                name: "loram",
-                point: "6343"),
-          ),
+                name: leaderboardUsers[2].firstName,
+                point: "${leaderboardUsers[2].points}",
+              ),
+            ),
+          ]
         ],
       ),
     );
   }
 
-  // Widget pour afficher un utilisateur dans le classement
   Column rank({
     required double radius,
     required double height,
@@ -205,39 +212,30 @@ class _ProfilePageState extends State<ProfilePage> {
           radius: radius,
           backgroundImage: AssetImage(image),
         ),
-        SizedBox(
-          height: height,
-        ),
+        SizedBox(height: height),
         Text(
           name,
           style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
         ),
-        SizedBox(
-          height: height,
-        ),
+        SizedBox(height: height),
         Container(
           height: 25,
           width: 70,
           decoration: BoxDecoration(
               color: Colors.black54, borderRadius: BorderRadius.circular(50)),
           child: Row(
+            mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              const SizedBox(
-                width: 5,
-              ),
               const Icon(
                 Icons.back_hand,
+                size: 14,
                 color: Color.fromARGB(255, 255, 187, 0),
               ),
-              const SizedBox(
-                width: 5,
-              ),
+              const SizedBox(width: 5),
               Text(
                 point,
                 style: const TextStyle(
-                    fontWeight: FontWeight.bold,
-                    fontSize: 10,
-                    color: Colors.white),
+                    fontWeight: FontWeight.bold, fontSize: 10, color: Colors.white),
               ),
             ],
           ),
