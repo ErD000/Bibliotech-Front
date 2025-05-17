@@ -10,7 +10,7 @@ Widget buildAppBarTitle() {
       Icon(Icons.menu_book, color: Colors.white, size: 28),
       SizedBox(width: 10),
       Text(
-        'BookShelf',
+        'BIBLIOTECH',
         style: TextStyle(
           fontFamily: 'Georgia',
           fontSize: 24,

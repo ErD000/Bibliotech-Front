@@ -189,7 +189,7 @@ class _BookListScreenState extends State<BookListScreen> {
                   ),
                   SizedBox(height: 8),
                   Text(
-                    'BOOKWORM v1.0',
+                    'BIBLIOTECH v1.0',
                     style: TextStyle(
                       color: Colors.white,
                       fontSize: 14,
