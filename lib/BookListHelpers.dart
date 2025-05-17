@@ -1,118 +1,154 @@
 import 'package:flutter/material.dart';
 import './PDFViewer.dart';
 import './book_utils.dart';
-import 'dart:io'; // Ajoutez ceci pour utiliser la classe File
+import 'dart:io';
+import 'package:intl/intl.dart';
 
-// Builds the title widget for the app bar
+// Modern SaaS-style theme colors
+const Color primaryColor = Color(0xFF2563EB); // Blue 600
+const Color secondaryColor = Color(0xFF1E293B); // Slate 800
+const Color accentColor = Color(0xFFF97316); // Orange 500
+const Color lightBgColor = Color(0xFFF8FAFC); // Light background
+const Color cardBgColor = Color(0xFFFFFFFF);
+
 Widget buildAppBarTitle() {
   return Row(
     children: [
-      Icon(Icons.menu_book, color: Colors.white, size: 28),
-      SizedBox(width: 10),
-      Text(
-        'BIBLIOTECH',
+      Icon(Icons.menu_book_rounded, color: Colors.white, size: 30),
+      const SizedBox(width: 12),
+      const Text(
+        'BiblioTech Pro',
         style: TextStyle(
-          fontFamily: 'Georgia',
-          fontSize: 24,
-          fontWeight: FontWeight.bold,
+          fontSize: 22,
+          fontWeight: FontWeight.w700,
           color: Colors.white,
+          letterSpacing: 1.2,
         ),
       ),
     ],
   );
 }
 
-// Builds section titles
 Widget buildSectionTitle(String title) {
-  return Text(
-    title,
-    style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
-  );
-}
-
-// Builds the row of floating buttons
-Widget buildFloatingButtonRow(BuildContext context, Function(String) onFilterChange) {
-  return Row(
-    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-    children: [
-      buildFloatingButton('À lire', Icons.bookmark, Colors.orangeAccent, () {
-        onFilterChange('À lire'); // Notifie le changement de filtre
-      }),
-      buildFloatingButton('Lu', Icons.check_circle, Colors.green, () {
-        onFilterChange('Lu');
-      }),
-      buildFloatingButton('Progression', Icons.analytics, Colors.blue, () {
-        onFilterChange('Progression');
-      }),
-      buildFloatingButton('Voir tout', Icons.visibility, Colors.red, () {
-        onFilterChange('Voir tout');
-      }),
-    ],
-  );
-}
-
-
-// Builds a single floating button
-Widget buildFloatingButton(String label, IconData icon, Color color,
-    VoidCallback onPressed) {
-  return Column(
-    children: [
-      FloatingActionButton(
-        onPressed: onPressed,
-        backgroundColor: color,
-        child: Icon(icon),
+  return Padding(
+    padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 12),
+    child: Text(
+      title,
+      style: const TextStyle(
+        fontSize: 20,
+        fontWeight: FontWeight.w600,
+        color: secondaryColor,
       ),
-      SizedBox(height: 10),
-      Text(label),
-    ],
+    ),
   );
 }
 
-// Builds the book card
+Widget buildFloatingButtonRow(BuildContext context, Function(String) onFilterChange) {
+  return Padding(
+    padding: const EdgeInsets.symmetric(horizontal: 16.0),
+    child: AnimatedSwitcher(
+      duration: const Duration(milliseconds: 500),
+      child: Wrap(
+        key: ValueKey(DateTime.now().millisecondsSinceEpoch),
+        spacing: 12,
+        children: [
+          _filterChip('📚 À lire', 'À lire', Colors.orangeAccent, onFilterChange),
+          _filterChip('✅ Lu', 'Lu', Colors.green, onFilterChange),
+          _filterChip('📊 Progression', 'Progression', Colors.blue, onFilterChange),
+          _filterChip('👁️ Voir tout', 'Voir tout', Colors.purple, onFilterChange),
+        ],
+      ),
+    ),
+  );
+}
+
+Widget _filterChip(String label, String filter, Color color, Function(String) onFilterChange) {
+  return Hero(
+    tag: filter,
+    child: ActionChip(
+      label: Text(label, style: const TextStyle(color: Colors.white)),
+      backgroundColor: color,
+      shape: const StadiumBorder(),
+      elevation: 3,
+      onPressed: () => onFilterChange(filter),
+    ),
+  );
+}
+
 Widget buildBookCard(BuildContext context, List<Map<String, dynamic>> books,
     int index, StateSetter setState) {
-  bool isRead = books[index]['isRead'] ?? false;
-  bool isToRead = books[index]['isToRead'] ?? false;
-  Color backgroundColor = isToRead
-      ? Colors.orange[50]!
-      : isRead
-      ? Colors.green[50]!
-      : Colors.white;
+  final book = books[index];
+  final isRead = book['isRead'] ?? false;
+  final isToRead = book['isToRead'] ?? false;
+  final progress = book['progress'] ?? 0.0;
+  final dateAdded = book['dateAdded'] != null
+      ? DateFormat('dd/MM/yyyy').format(DateTime.parse(book['dateAdded']))
+      : 'Date inconnue';
 
-  return Card(
-    color: backgroundColor,
-    margin: EdgeInsets.symmetric(vertical: 8.0, horizontal: 16.0),
-    elevation: 3,
-    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+  String badge = 'Nouveau';
+  Color badgeColor = Colors.indigo;
+
+  if (isRead) {
+    badge = 'Terminé';
+    badgeColor = Colors.green.shade600;
+  } else if (progress > 0) {
+    badge = 'En cours';
+    badgeColor = Colors.blue.shade600;
+  }
+
+  return AnimatedContainer(
+    duration: const Duration(milliseconds: 300),
+    curve: Curves.easeInOut,
+    margin: const EdgeInsets.symmetric(vertical: 10.0, horizontal: 16.0),
+    decoration: BoxDecoration(
+      color: cardBgColor,
+      borderRadius: BorderRadius.circular(16),
+      boxShadow: [
+        BoxShadow(
+          color: Colors.black12,
+          blurRadius: 10,
+          offset: Offset(0, 4),
+        )
+      ],
+    ),
     child: Padding(
-      padding: const EdgeInsets.all(16.0),
+      padding: const EdgeInsets.all(18.0),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
             children: [
-              Icon(Icons.picture_as_pdf, color: Colors.red, size: 40),
-              SizedBox(width: 16),
+              const Icon(Icons.picture_as_pdf_rounded, color: Colors.redAccent, size: 40),
+              const SizedBox(width: 12),
               Expanded(
                 child: Text(
-                  books[index]['name'],
-                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                  book['name'],
+                  style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                  overflow: TextOverflow.ellipsis,
                 ),
+              ),
+              Chip(
+                label: Text(badge, style: const TextStyle(color: Colors.white)),
+                backgroundColor: badgeColor,
               ),
             ],
           ),
-          SizedBox(height: 10),
+          const SizedBox(height: 12),
           LinearProgressIndicator(
-            value: books[index]['progress'] ?? 0.0,
+            value: progress,
             backgroundColor: Colors.grey[300],
-            color: Colors.blue,
+            color: primaryColor,
+            minHeight: 6,
           ),
-          SizedBox(height: 5),
+          const SizedBox(height: 6),
           Text(
-            '${books[index]['pagesRead'] ?? 0} pages lues sur ${books[index]['totalPages'] ?? 100}',
-            style: TextStyle(fontSize: 14, color: Colors.grey),
+            '${book['pagesRead'] ?? 0} pages lues sur ${book['totalPages'] ?? 100}',
+            style: const TextStyle(fontSize: 13, color: Colors.black54),
           ),
-          SizedBox(height: 10),
+          const SizedBox(height: 4),
+          Text('📅 Ajouté le $dateAdded',
+              style: const TextStyle(fontSize: 12, color: Colors.black45)),
+          const SizedBox(height: 12),
           buildBookActions(context, books, index, setState),
         ],
       ),
@@ -120,72 +156,70 @@ Widget buildBookCard(BuildContext context, List<Map<String, dynamic>> books,
   );
 }
 
-// Builds action buttons for the book card
 Widget buildBookActions(BuildContext context, List<Map<String, dynamic>> books,
     int index, StateSetter setState) {
+  final book = books[index];
+
   return Column(
     children: [
       Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          buildActionButton('À lire', Colors.orange, () async {
+          _pillButton('À lire', Colors.orange, () async {
             setState(() {
-              books[index]['isToRead'] = true;
-              books[index]['isRead'] = false;
+              book['isToRead'] = true;
+              book['isRead'] = false;
             });
-            await saveBooksStateToStorage(books); // Sauvegarde persistante
+            await saveBooksStateToStorage(books);
           }),
-          buildActionButton('Lu', Colors.green, () async {
+          const SizedBox(width: 8),
+          _pillButton('Lu', Colors.green, () async {
             setState(() {
-              books[index]['isRead'] = true;
-              books[index]['isToRead'] = false;
+              book['isRead'] = true;
+              book['isToRead'] = false;
             });
-            await saveBooksStateToStorage(books); // Sauvegarde persistante
+            await saveBooksStateToStorage(books);
           }),
         ],
       ),
-      SizedBox(height: 10),
+      const SizedBox(height: 10),
       Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          buildActionButton('Ouvrir PDF', Colors.blue, () {
+          _pillButton('Reprendre', accentColor, () {
             Navigator.push(
               context,
-              MaterialPageRoute(
-                builder: (context) => PDFViewerPage(
-                  filePath: books[index]['path'],
+              PageRouteBuilder(
+                transitionDuration: const Duration(milliseconds: 400),
+                pageBuilder: (_, __, ___) => PDFViewerPage(
+                  filePath: book['path'],
                   onPageChanged: (current, total) {
                     setState(() {
-                      books[index]['pagesRead'] = current ?? 0;
+                      book['pagesRead'] = current ?? 0;
+                      book['progress'] = total != null && total > 0
+                          ? (current ?? 0) / total
+                          : 0.0;
                     });
                   },
+                ),
+                transitionsBuilder: (_, anim, __, child) => FadeTransition(
+                  opacity: anim,
+                  child: child,
                 ),
               ),
             );
           }),
-          buildActionButton('Supprimer', Colors.red, () async {
-            String bookPath = books[index]['path']; // Récupérer le chemin du fichier PDF
+          const SizedBox(width: 8),
+          _pillButton('🗑 Supprimer', Colors.redAccent, () async {
+            final file = File(book['path']);
+            if (await file.exists()) await file.delete();
 
-            // Supprimer le fichier du stockage local
-            final file = File(bookPath);
-            if (await file.exists()) {
-              await file.delete(); // Supprime le fichier
-              print('[INFO] Livre supprimé du stockage : $bookPath');
-            }
-
-            // Supprimer le livre de la liste en mémoire
             setState(() {
-              if (index >= 0 && index < books.length) {
-                books.removeAt(index);
-              }
+              books.removeAt(index);
             });
 
-            // Sauvegarder l'état mis à jour dans le stockage persistant (SharedPreferences ou autre)
-            await saveBooksStateToStorage(books); // Sauvegarde persistante
+            await saveBooksStateToStorage(books);
 
-            // Optionnel : Ajoutez un message ou une notification pour informer l'utilisateur
             ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(content: Text('Livre supprimé avec succès')),
+              const SnackBar(content: Text('📁 Livre supprimé avec succès')),
             );
           }),
         ],
@@ -194,15 +228,21 @@ Widget buildBookActions(BuildContext context, List<Map<String, dynamic>> books,
   );
 }
 
-
-
-// Builds a single action button
-Widget buildActionButton(String label, Color color, VoidCallback onPressed) {
+Widget _pillButton(String label, Color color, VoidCallback onPressed) {
   return Expanded(
-    child: ElevatedButton(
-      style: ElevatedButton.styleFrom(backgroundColor: color),
-      onPressed: onPressed,
-      child: Text(label, style: TextStyle(fontSize: 16, color: Colors.white)),
+    child: AnimatedContainer(
+      duration: const Duration(milliseconds: 250),
+      curve: Curves.easeInOut,
+      child: ElevatedButton(
+        onPressed: onPressed,
+        style: ElevatedButton.styleFrom(
+          backgroundColor: color,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(30)),
+          padding: const EdgeInsets.symmetric(vertical: 12),
+          elevation: 2,
+        ),
+        child: Text(label, style: const TextStyle(fontSize: 14, color: Colors.white)),
+      ),
     ),
   );
 }

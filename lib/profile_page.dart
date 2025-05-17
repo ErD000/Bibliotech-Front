@@ -29,7 +29,7 @@ class _ProfilePageState extends State<ProfilePage> {
   Future<void> _fetchLeaderboard() async {
     // URL corrigée : plus de /api
     final response = await http
-        .get(Uri.parse('http://10.0.6.2:3000/scoreboard/leaderboard'));
+        .get(Uri.parse('http://10.0.6.2:3000/api/scoreboard/get_leaderboard'));
 
     if (response.statusCode == 200) {
       final jsonData = json.decode(response.body);
