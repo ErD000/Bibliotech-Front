@@ -2,11 +2,16 @@ import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'dart:io';
 import 'dart:convert';
-import 'package:confetti/confetti.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'LoginScreen.dart';
 import 'package:http/http.dart' as http;
 
+// Couleurs modernes - harmonisées avec ton thème SaaS
+const Color primaryColor = Color(0xFF2563EB);
+const Color secondaryColor = Color(0xFF1E293B);
+const Color accentColor = Color(0xFFF97316);
+const Color lightBgColor = Color(0xFFF8FAFC);
+const Color cardBgColor = Color(0xFFFFFFFF);
 
 class ProfileScreen extends StatefulWidget {
   @override
@@ -18,63 +23,58 @@ class _ProfileScreenState extends State<ProfileScreen> {
   String email = "";
   File? _imageFile;
 
-  late ConfettiController _confettiController;
-
-  final _formKey = GlobalKey<FormState>();
   final _nameController = TextEditingController();
   final _emailController = TextEditingController();
 
   int totalPagesRead = 100;
   int totalBookPages = 0;
+  int rank = 0;
+  int points = 0;
 
-  int rank = 0;     // Ajouté
-  int points = 0;   // Ajouté
+  final _formKey = GlobalKey<FormState>();
+
+  @override
+  void initState() {
+    super.initState();
+    _loadStatistics();
+    _loadUserFromToken();
+  }
 
   Future<void> _loadStatistics() async {
     final prefs = await SharedPreferences.getInstance();
-    final savedTotalPagesRead = prefs.getInt('totalPagesRead') ?? 0;
-    final savedTotalBookPages = prefs.getInt('totalBookPages') ?? 0;
-
-    print("Total pages read from SharedPreferences: $savedTotalPagesRead");
-    print("Total book pages from SharedPreferences: $savedTotalBookPages");
-
     setState(() {
-      totalPagesRead = savedTotalPagesRead;
-      totalBookPages = savedTotalBookPages;
+      totalPagesRead = prefs.getInt('totalPagesRead') ?? 0;
+      totalBookPages = prefs.getInt('totalBookPages') ?? 0;
     });
   }
 
   Future<void> _loadUserFromToken() async {
     final prefs = await SharedPreferences.getInstance();
     final token = prefs.getString('token');
-    if (token == null) {
-      print('[ERREUR] Aucun token trouvé.');
-      return;
-    }
+    if (token == null) return;
 
     try {
       final parts = token.split('.');
       if (parts.length != 3) throw FormatException("Format JWT invalide");
-
       final payload = utf8.decode(base64.decode(base64.normalize(parts[1])));
       final data = jsonDecode(payload);
 
       setState(() {
-        name = data['user'] ?? name;
-        email = data['email'] ?? email;
-        rank = data['rank'] ?? 0;       // Ajouté
-        points = data['points'] ?? 0;   // Ajouté
+        name = data['user'] ?? "";
+        email = data['email'] ?? "";
+        rank = data['rank'] ?? 0;
+        points = data['points'] ?? 0;
+        _nameController.text = name;
+        _emailController.text = email;
       });
-
-      print('[INFO] Utilisateur chargé depuis le token : $name, $email, Rank: $rank, Points: $points');
     } catch (e) {
-      print('[ERREUR] Impossible de décoder le token : $e');
+      print('[ERREUR] Décodage token : $e');
     }
   }
+
   Future<bool> _updateUsername(String newName) async {
     final prefs = await SharedPreferences.getInstance();
     final token = prefs.getString('token');
-
     final response = await http.post(
       Uri.parse('http://10.0.6.2:3000/api/update_username'),
       headers: {
@@ -83,14 +83,12 @@ class _ProfileScreenState extends State<ProfileScreen> {
       },
       body: jsonEncode({'username': newName}),
     );
-
     return response.statusCode == 200;
   }
 
   Future<bool> _updateEmail(String newEmail) async {
     final prefs = await SharedPreferences.getInstance();
     final token = prefs.getString('token');
-
     final response = await http.post(
       Uri.parse('http://10.0.6.2:3000/api/update_email'),
       headers: {
@@ -99,140 +97,128 @@ class _ProfileScreenState extends State<ProfileScreen> {
       },
       body: jsonEncode({'email': newEmail}),
     );
-
     return response.statusCode == 200;
-  }
-
-  @override
-  void initState() {
-    super.initState();
-    _loadStatistics();
-    _loadUserFromToken();
-    _nameController.text = name;
-    _emailController.text = email;
-
-    _confettiController = ConfettiController(duration: const Duration(seconds: 1));
-
-    Future.delayed(Duration(milliseconds: 300), () {
-      _confettiController.play();
-    });
-  }
-
-  @override
-  void dispose() {
-    _confettiController.dispose();
-    super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.grey[100],
+      backgroundColor: lightBgColor,
       appBar: AppBar(
-        title: Text(
-          "Profil",
-          style: TextStyle(
-            fontFamily: 'Lora',
-            fontSize: 26,
-            fontWeight: FontWeight.w600,
-            color: Colors.white,
-          ),
-        ),
-        backgroundColor: Colors.black,
-        elevation: 0,
-        leading: IconButton(
-          icon: Icon(Icons.arrow_back, color: Colors.white),
-          onPressed: () {
-            Navigator.pop(context);
-          },
-        ),
-      ),
-      body: Stack(
-        children: [
-          Positioned.fill(
-            child: ConfettiWidget(
-              confettiController: _confettiController,
-              blastDirectionality: BlastDirectionality.explosive,
-              particleDrag: 0.05,
-              emissionFrequency: 0.05,
-              numberOfParticles: 20,
-              gravity: 0.1,
-              shouldLoop: true,
-              blastDirection: 3.14,
-            ),
-          ),
-          SingleChildScrollView(
-            child: Padding(
-              padding: const EdgeInsets.all(20.0),
-              child: Column(
-                children: [
-                  _buildProfileSection(),
-                  SizedBox(height: 30),
-                  _buildStatsSection(),
-                  SizedBox(height: 30),
-                  _buildMenu(context),
-                ],
+        backgroundColor: primaryColor,
+        elevation: 1,
+        title: Row(
+          children: [
+            Icon(Icons.account_circle_rounded, size: 28, color: Colors.white),
+            SizedBox(width: 12),
+            Text(
+              'Profil',
+              style: TextStyle(
+                fontWeight: FontWeight.w700,
+                fontSize: 22,
+                color: Colors.white,
+                letterSpacing: 0.8,
               ),
             ),
-          ),
-        ],
+          ],
+        ),
+        leading: IconButton(
+          icon: Icon(Icons.arrow_back_ios_new, color: Colors.white),
+          onPressed: () => Navigator.pop(context),
+        ),
+      ),
+      body: SingleChildScrollView(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 24),
+        child: Column(
+          children: [
+            _buildProfileCard(),
+            SizedBox(height: 30),
+            _buildStatsCard(),
+            SizedBox(height: 30),
+            _buildMenu(),
+          ],
+        ),
       ),
     );
   }
 
-  Widget _buildProfileSection() {
+  Widget _buildProfileCard() {
     return Container(
       padding: EdgeInsets.all(20),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: cardBgColor,
         borderRadius: BorderRadius.circular(20),
-        boxShadow: [BoxShadow(color: Colors.black26, blurRadius: 10)],
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black12,
+            blurRadius: 10,
+            offset: Offset(0, 6),
+          )
+        ],
       ),
       child: Row(
-        crossAxisAlignment: CrossAxisAlignment.center,
         children: [
           CircleAvatar(
             radius: 50,
             backgroundImage: _imageFile == null
-                ? AssetImage('Images/j.jpeg') as ImageProvider
-                : FileImage(_imageFile!),
+                ? AssetImage('Images/j.jpeg')
+                : FileImage(_imageFile!) as ImageProvider,
           ),
           SizedBox(width: 20),
-          Flexible(
+          Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(name, style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold)),
-                SizedBox(height: 5),
-                Text(email, style: TextStyle(color: Colors.grey)),
+                Text(
+                  name.isEmpty ? 'Utilisateur' : name,
+                  style: TextStyle(
+                    fontSize: 24,
+                    fontWeight: FontWeight.bold,
+                    color: secondaryColor,
+                  ),
+                ),
+                SizedBox(height: 6),
+                Text(
+                  email.isEmpty ? 'Email non défini' : email,
+                  style: TextStyle(
+                    color: Colors.grey[700],
+                    fontSize: 16,
+                    fontWeight: FontWeight.w400,
+                  ),
+                ),
               ],
             ),
           ),
           IconButton(
-            icon: Icon(Icons.edit, color: Colors.amber),
-            onPressed: () {
-              _showEditDialog();
-            },
+            icon: Icon(Icons.edit, color: accentColor, size: 28),
+            tooltip: 'Modifier le profil',
+            onPressed: _showEditDialog,
           ),
         ],
       ),
     );
   }
 
-  Widget _buildStatsSection() {
+  Widget _buildStatsCard() {
     return Container(
-      padding: EdgeInsets.all(20),
+      padding: EdgeInsets.symmetric(vertical: 24, horizontal: 16),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: cardBgColor,
         borderRadius: BorderRadius.circular(20),
-        boxShadow: [BoxShadow(color: Colors.black26, blurRadius: 10)],
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black12,
+            blurRadius: 10,
+            offset: Offset(0, 6),
+          )
+        ],
       ),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceAround,
         children: [
           _statItem(totalPagesRead.toString(), "Pages lues"),
-          _statItem(points.toString(), "Points"),       // Ajouté
-          _statItem(rank.toString(), "Rang"),           // Ajouté
+          _statItem(points.toString(), "Points"),
+          _statItem(rank.toString(), "Rang"),
         ],
       ),
     );
@@ -243,175 +229,209 @@ class _ProfileScreenState extends State<ProfileScreen> {
       children: [
         Text(
           number,
-          style: TextStyle(fontSize: 22, fontWeight: FontWeight.w600),
+          style: TextStyle(
+            fontSize: 26,
+            fontWeight: FontWeight.w700,
+            color: primaryColor,
+          ),
         ),
-        SizedBox(height: 5),
+        SizedBox(height: 6),
         Text(
           label,
-          style: TextStyle(color: Colors.grey[600]),
+          style: TextStyle(
+            fontSize: 15,
+            fontWeight: FontWeight.w500,
+            color: secondaryColor.withOpacity(0.7),
+          ),
         ),
       ],
     );
   }
 
-  Widget _buildMenu(BuildContext context) {
+  Widget _buildMenu() {
     return Column(
       children: [
-        _buildMenuItem(Icons.info, "À propos", context, () {
-          _showDialog(context, "À propos", "BookShelf\nVersion 1.0\nUne application pour gérer vos lectures.");
+        _buildMenuItem(Icons.info_outline, "À propos", () {
+          _showDialog("À propos", "BookShelf\nVersion 1.0\nUne application pour gérer vos lectures.");
         }),
-        _buildMenuItem(Icons.help, "Aide", context, () {
-          _showDialog(context, "Aide", "Besoin d'aide ?\nConsultez notre site ou contactez-nous.");
+        _buildMenuItem(Icons.help_outline, "Aide", () {
+          _showDialog("Aide", "Besoin d'aide ? Consultez notre site ou contactez-nous.");
         }),
-        _buildMenuItem(Icons.logout, "Déconnexion", context, () {
-          _showLogoutDialog(context);
-        }, color: Colors.red),
+        _buildMenuItem(Icons.logout, "Déconnexion", _showLogoutDialog, color: Colors.redAccent),
       ],
     );
   }
 
-  Widget _buildMenuItem(IconData icon, String title, BuildContext context, VoidCallback onTap, {Color color = Colors.black}) {
-    return ListTile(
-      leading: Icon(icon, color: color),
-      title: Text(title, style: TextStyle(color: color, fontSize: 18, fontWeight: FontWeight.w500)),
-      trailing: Icon(Icons.arrow_forward_ios, size: 18, color: Colors.grey),
-      onTap: onTap,
+  Widget _buildMenuItem(IconData icon, String title, VoidCallback onTap, {Color? color}) {
+    final iconColor = color ?? secondaryColor;
+    final textColor = color ?? secondaryColor;
+    return Card(
+      margin: EdgeInsets.symmetric(vertical: 8),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+      elevation: 3,
+      child: ListTile(
+        leading: Icon(icon, color: iconColor),
+        title: Text(
+          title,
+          style: TextStyle(
+            fontSize: 18,
+            fontWeight: FontWeight.w600,
+            color: textColor,
+          ),
+        ),
+        trailing: Icon(Icons.arrow_forward_ios, size: 18, color: Colors.grey[400]),
+        onTap: onTap,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+      ),
     );
   }
 
   void _showEditDialog() {
-    _nameController.text = name;   // Remettre les valeurs actuelles à chaque ouverture
+    _nameController.text = name;
     _emailController.text = email;
 
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        title: Text("Modifier le profil"),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            TextField(
-              controller: _nameController,
-              decoration: InputDecoration(labelText: "Nom"),
-            ),
-            SizedBox(height: 10),
-            TextField(
-              controller: _emailController,
-              decoration: InputDecoration(labelText: "Email"),
-            ),
-            SizedBox(height: 10),
-            ElevatedButton(
-              onPressed: () async {
-                final picker = ImagePicker();
-                final pickedFile = await picker.pickImage(source: ImageSource.gallery);
-                if (pickedFile != null) {
-                  setState(() {
-                    _imageFile = File(pickedFile.path);
-                  });
-                }
-              },
-              child: Text("Choisir une image"),
-            ),
-          ],
+        title: Text("Modifier le profil", style: TextStyle(color: secondaryColor, fontWeight: FontWeight.bold)),
+        content: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              TextField(
+                controller: _nameController,
+                decoration: InputDecoration(
+                  labelText: "Nom",
+                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                ),
+              ),
+              SizedBox(height: 12),
+              TextField(
+                controller: _emailController,
+                decoration: InputDecoration(
+                  labelText: "Email",
+                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                ),
+              ),
+              SizedBox(height: 16),
+              ElevatedButton.icon(
+                onPressed: () async {
+                  final picker = ImagePicker();
+                  final pickedFile = await picker.pickImage(source: ImageSource.gallery);
+                  if (pickedFile != null) {
+                    setState(() {
+                      _imageFile = File(pickedFile.path);
+                    });
+                  }
+                },
+                icon: Icon(Icons.image),
+                label: Text("Choisir une image"),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: accentColor,
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(30)),
+                  padding: EdgeInsets.symmetric(vertical: 12, horizontal: 20),
+                ),
+              ),
+            ],
+          ),
         ),
         actions: [
           TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: Text("Annuler", style: TextStyle(color: secondaryColor)),
+          ),
+          ElevatedButton(
             onPressed: () async {
               final newName = _nameController.text.trim();
               final newEmail = _emailController.text.trim();
-
               bool hasChanges = false;
 
               if (newName.isNotEmpty && newName != name) {
-                final success = await _updateUsername(newName);
-                if (success) {
-                  // ✅ Nom mis à jour avec succès côté serveur
-                  setState(() {
-                    name = newName;
-                  });
+                if (await _updateUsername(newName)) {
+                  setState(() => name = newName);
                   hasChanges = true;
                 } else {
-                  // ❌ Échec de la mise à jour du nom côté serveur
-                  print('[ERREUR] Échec mise à jour du nom');
+                  _showSnackBar('Erreur lors de la mise à jour du nom');
                 }
               }
 
               if (newEmail.isNotEmpty && newEmail != email) {
-                final success = await _updateEmail(newEmail);
-                if (success) {
-                  // ✅ Email mis à jour avec succès côté serveur
-                  setState(() {
-                    email = newEmail;
-                  });
+                if (await _updateEmail(newEmail)) {
+                  setState(() => email = newEmail);
                   hasChanges = true;
                 } else {
-                  // ❌ Échec de la mise à jour de l’email côté serveur
-                  print('[ERREUR] Échec mise à jour de l\'email');
+                  _showSnackBar('Erreur lors de la mise à jour de l\'email');
                 }
               }
 
               if (hasChanges) {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(content: Text('Profil mis à jour')),
-                );
+                _showSnackBar('Profil mis à jour avec succès');
+                Navigator.pop(context);
               }
-
-              Navigator.pop(context);
             },
-            child: Text("Sauvegarder"),
-          ),
-
-
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: Text("Annuler"),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: primaryColor,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(30)),
+              padding: EdgeInsets.symmetric(vertical: 12, horizontal: 20),
+            ),
+            child: Text("Enregistrer"),
           ),
         ],
       ),
     );
   }
 
-
-  void _showDialog(BuildContext context, String title, String content) {
+  void _showLogoutDialog() {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        title: Text(title),
+        title: Text('Déconnexion', style: TextStyle(color: secondaryColor)),
+        content: Text('Voulez-vous vraiment vous déconnecter ?'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: Text('Annuler'),
+          ),
+          ElevatedButton(
+            onPressed: () async {
+              final prefs = await SharedPreferences.getInstance();
+              await prefs.remove('token');
+              Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => LoginScreen()));
+            },
+            child: Text('Déconnexion'),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.redAccent,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(30)),
+            ),
+          )
+        ],
+      ),
+    );
+  }
+
+  void _showDialog(String title, String content) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text(title, style: TextStyle(color: secondaryColor)),
         content: Text(content),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
-            child: Text("Fermer"),
-          ),
+            child: Text('Fermer'),
+          )
         ],
       ),
     );
   }
 
-  void _showLogoutDialog(BuildContext context) {
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: Text("Se déconnecter"),
-        content: Text("Voulez-vous vraiment vous déconnecter ?"),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: Text("Annuler"),
-          ),
-          TextButton(
-            onPressed: () async {
-              final prefs = await SharedPreferences.getInstance();
-              await prefs.clear(); // Supprimer le token et autres données
-
-              Navigator.of(context).pushAndRemoveUntil(
-                MaterialPageRoute(builder: (_) => LoginScreen()),
-                    (route) => false,
-              );
-            },
-            child: Text("Oui, déconnecter"),
-          ),
-        ],
+  void _showSnackBar(String message) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(message),
+        backgroundColor: primaryColor,
+        behavior: SnackBarBehavior.floating,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
       ),
     );
   }
