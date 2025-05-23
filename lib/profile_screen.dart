@@ -6,7 +6,6 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'LoginScreen.dart';
 import 'package:http/http.dart' as http;
 
-// Couleurs modernes - harmonisées avec ton thème SaaS
 const Color primaryColor = Color(0xFF2563EB);
 const Color secondaryColor = Color(0xFF1E293B);
 const Color accentColor = Color(0xFFF97316);
@@ -21,16 +20,14 @@ class ProfileScreen extends StatefulWidget {
 class _ProfileScreenState extends State<ProfileScreen> {
   String name = "";
   String email = "";
+  String? profileImageUrl;
   File? _imageFile;
-
   final _nameController = TextEditingController();
   final _emailController = TextEditingController();
-
   int totalPagesRead = 100;
   int totalBookPages = 0;
   int rank = 0;
   int points = 0;
-
   final _formKey = GlobalKey<FormState>();
 
   @override
@@ -59,6 +56,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
       final payload = utf8.decode(base64.decode(base64.normalize(parts[1])));
       final data = jsonDecode(payload);
 
+      final userUuid = data['user_uuid'];
+
       setState(() {
         name = data['user'] ?? "";
         email = data['email'] ?? "";
@@ -66,6 +65,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
         points = data['points'] ?? 0;
         _nameController.text = name;
         _emailController.text = email;
+
+        if (userUuid != null) {
+          profileImageUrl = 'http://10.0.6.2:3000/user-pictures/$userUuid/profile_picture.webp';
+        }
       });
     } catch (e) {
       print('[ERREUR] Décodage token : $e');
@@ -111,15 +114,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
           children: [
             Icon(Icons.account_circle_rounded, size: 28, color: Colors.white),
             SizedBox(width: 12),
-            Text(
-              'Profil',
-              style: TextStyle(
-                fontWeight: FontWeight.w700,
-                fontSize: 22,
-                color: Colors.white,
-                letterSpacing: 0.8,
-              ),
-            ),
+            Text('Profil', style: TextStyle(fontWeight: FontWeight.w700, fontSize: 22, color: Colors.white)),
           ],
         ),
         leading: IconButton(
@@ -148,44 +143,26 @@ class _ProfileScreenState extends State<ProfileScreen> {
       decoration: BoxDecoration(
         color: cardBgColor,
         borderRadius: BorderRadius.circular(20),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black12,
-            blurRadius: 10,
-            offset: Offset(0, 6),
-          )
-        ],
+        boxShadow: [BoxShadow(color: Colors.black12, blurRadius: 10, offset: Offset(0, 6))],
       ),
       child: Row(
         children: [
           CircleAvatar(
             radius: 50,
-            backgroundImage: _imageFile == null
-                ? AssetImage('Images/j.jpeg')
-                : FileImage(_imageFile!) as ImageProvider,
+            backgroundImage: _imageFile != null
+                ? FileImage(_imageFile!)
+                : (profileImageUrl != null
+                ? NetworkImage(profileImageUrl!)
+                : AssetImage('Images/j.jpeg')) as ImageProvider,
           ),
           SizedBox(width: 20),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(
-                  name.isEmpty ? 'Utilisateur' : name,
-                  style: TextStyle(
-                    fontSize: 24,
-                    fontWeight: FontWeight.bold,
-                    color: secondaryColor,
-                  ),
-                ),
+                Text(name.isEmpty ? 'Utilisateur' : name, style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: secondaryColor)),
                 SizedBox(height: 6),
-                Text(
-                  email.isEmpty ? 'Email non défini' : email,
-                  style: TextStyle(
-                    color: Colors.grey[700],
-                    fontSize: 16,
-                    fontWeight: FontWeight.w400,
-                  ),
-                ),
+                Text(email.isEmpty ? 'Email non défini' : email, style: TextStyle(color: Colors.grey[700], fontSize: 16)),
               ],
             ),
           ),
@@ -205,13 +182,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
       decoration: BoxDecoration(
         color: cardBgColor,
         borderRadius: BorderRadius.circular(20),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black12,
-            blurRadius: 10,
-            offset: Offset(0, 6),
-          )
-        ],
+        boxShadow: [BoxShadow(color: Colors.black12, blurRadius: 10, offset: Offset(0, 6))],
       ),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceAround,
@@ -227,23 +198,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
   Widget _statItem(String number, String label) {
     return Column(
       children: [
-        Text(
-          number,
-          style: TextStyle(
-            fontSize: 26,
-            fontWeight: FontWeight.w700,
-            color: primaryColor,
-          ),
-        ),
+        Text(number, style: TextStyle(fontSize: 26, fontWeight: FontWeight.w700, color: primaryColor)),
         SizedBox(height: 6),
-        Text(
-          label,
-          style: TextStyle(
-            fontSize: 15,
-            fontWeight: FontWeight.w500,
-            color: secondaryColor.withOpacity(0.7),
-          ),
-        ),
+        Text(label, style: TextStyle(fontSize: 15, fontWeight: FontWeight.w500, color: secondaryColor.withOpacity(0.7))),
       ],
     );
   }
@@ -251,12 +208,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
   Widget _buildMenu() {
     return Column(
       children: [
-        _buildMenuItem(Icons.info_outline, "À propos", () {
-          _showDialog("À propos", "BookShelf\nVersion 1.0\nUne application pour gérer vos lectures.");
-        }),
-        _buildMenuItem(Icons.help_outline, "Aide", () {
-          _showDialog("Aide", "Besoin d'aide ? Consultez notre site ou contactez-nous.");
-        }),
+        _buildMenuItem(Icons.info_outline, "À propos", () => _showDialog("À propos", "BookShelf\nVersion 1.0\nUne application pour gérer vos lectures.")),
+        _buildMenuItem(Icons.help_outline, "Aide", () => _showDialog("Aide", "Besoin d'aide ? Consultez notre site ou contactez-nous.")),
         _buildMenuItem(Icons.logout, "Déconnexion", _showLogoutDialog, color: Colors.redAccent),
       ],
     );
@@ -271,14 +224,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
       elevation: 3,
       child: ListTile(
         leading: Icon(icon, color: iconColor),
-        title: Text(
-          title,
-          style: TextStyle(
-            fontSize: 18,
-            fontWeight: FontWeight.w600,
-            color: textColor,
-          ),
-        ),
+        title: Text(title, style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600, color: textColor)),
         trailing: Icon(Icons.arrow_forward_ios, size: 18, color: Colors.grey[400]),
         onTap: onTap,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
@@ -300,18 +246,12 @@ class _ProfileScreenState extends State<ProfileScreen> {
             children: [
               TextField(
                 controller: _nameController,
-                decoration: InputDecoration(
-                  labelText: "Nom",
-                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
-                ),
+                decoration: InputDecoration(labelText: "Nom", border: OutlineInputBorder(borderRadius: BorderRadius.circular(12))),
               ),
               SizedBox(height: 12),
               TextField(
                 controller: _emailController,
-                decoration: InputDecoration(
-                  labelText: "Email",
-                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
-                ),
+                decoration: InputDecoration(labelText: "Email", border: OutlineInputBorder(borderRadius: BorderRadius.circular(12))),
               ),
               SizedBox(height: 16),
               ElevatedButton.icon(
@@ -319,9 +259,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   final picker = ImagePicker();
                   final pickedFile = await picker.pickImage(source: ImageSource.gallery);
                   if (pickedFile != null) {
-                    setState(() {
-                      _imageFile = File(pickedFile.path);
-                    });
+                    setState(() => _imageFile = File(pickedFile.path));
                   }
                 },
                 icon: Icon(Icons.image),
@@ -336,10 +274,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
           ),
         ),
         actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: Text("Annuler", style: TextStyle(color: secondaryColor)),
-          ),
+          TextButton(onPressed: () => Navigator.pop(context), child: Text("Annuler", style: TextStyle(color: secondaryColor))),
           ElevatedButton(
             onPressed: () async {
               final newName = _nameController.text.trim();
@@ -388,10 +323,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
         title: Text('Déconnexion', style: TextStyle(color: secondaryColor)),
         content: Text('Voulez-vous vraiment vous déconnecter ?'),
         actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: Text('Annuler'),
-          ),
+          TextButton(onPressed: () => Navigator.pop(context), child: Text('Annuler')),
           ElevatedButton(
             onPressed: () async {
               final prefs = await SharedPreferences.getInstance();
@@ -399,10 +331,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
               Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => LoginScreen()));
             },
             child: Text('Déconnexion'),
-            style: ElevatedButton.styleFrom(
-              backgroundColor: Colors.redAccent,
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(30)),
-            ),
+            style: ElevatedButton.styleFrom(backgroundColor: Colors.redAccent, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(30))),
           )
         ],
       ),
@@ -415,12 +344,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
       builder: (context) => AlertDialog(
         title: Text(title, style: TextStyle(color: secondaryColor)),
         content: Text(content),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: Text('Fermer'),
-          )
-        ],
+        actions: [TextButton(onPressed: () => Navigator.pop(context), child: Text('Fermer'))],
       ),
     );
   }

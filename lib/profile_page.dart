@@ -18,8 +18,7 @@ class _ProfilePageState extends State<ProfilePage> {
   @override
   void initState() {
     super.initState();
-    _confettiController =
-        ConfettiController(duration: const Duration(seconds: 1));
+    _confettiController = ConfettiController(duration: const Duration(seconds: 1));
     Future.delayed(const Duration(milliseconds: 300), () {
       _confettiController.play();
     });
@@ -27,17 +26,14 @@ class _ProfilePageState extends State<ProfilePage> {
   }
 
   Future<void> _fetchLeaderboard() async {
-    // URL corrigée : plus de /api
-    final response = await http
-        .get(Uri.parse('http://10.0.6.2:3000/api/scoreboard/get_leaderboard'));
+    final response = await http.get(Uri.parse('http://10.0.6.2:3000/api/scoreboard/get_leaderboard'));
 
     if (response.statusCode == 200) {
       final jsonData = json.decode(response.body);
-      final List<dynamic> data = jsonData['leaderboard']; // clé correcte
+      final List<dynamic> data = jsonData['leaderboard'];
 
       setState(() {
-        leaderboardUsers =
-            data.map((e) => LeaderboardUser.fromJson(e)).toList();
+        leaderboardUsers = data.map((e) => LeaderboardUser.fromJson(e)).toList();
       });
     } else {
       debugPrint('Erreur de chargement: ${response.statusCode}');
@@ -59,16 +55,16 @@ class _ProfilePageState extends State<ProfilePage> {
         title: const Text(
           'Leaderboard',
           style: TextStyle(
-              fontFamily: 'Georgia',
-              fontSize: 24,
-              fontWeight: FontWeight.bold,
-              color: Colors.white),
+            fontFamily: 'Georgia',
+            fontSize: 24,
+            fontWeight: FontWeight.bold,
+            color: Colors.white,
+          ),
         ),
         centerTitle: true,
       ),
       body: Stack(
         children: [
-          // confettis
           Positioned.fill(
             child: ConfettiWidget(
               confettiController: _confettiController,
@@ -81,7 +77,6 @@ class _ProfilePageState extends State<ProfilePage> {
               blastDirection: 3.14,
             ),
           ),
-          // liste
           Align(
             alignment: Alignment.bottomCenter,
             child: Container(
@@ -89,16 +84,14 @@ class _ProfilePageState extends State<ProfilePage> {
               width: double.infinity,
               decoration: const BoxDecoration(
                 color: Colors.white,
-                borderRadius:
-                BorderRadius.vertical(top: Radius.circular(20)),
+                borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
               ),
               child: leaderboardUsers.isEmpty
                   ? const Center(child: CircularProgressIndicator())
                   : ListView.builder(
                 physics: const BouncingScrollPhysics(),
                 itemCount: leaderboardUsers.length,
-                padding: const EdgeInsets.symmetric(
-                    horizontal: 20, vertical: 10),
+                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
                 itemBuilder: (context, index) {
                   final user = leaderboardUsers[index];
                   return _leaderboardRow(user);
@@ -106,14 +99,12 @@ class _ProfilePageState extends State<ProfilePage> {
               ),
             ),
           ),
-          // podium top 3
           if (leaderboardUsers.length >= 3) ...[
             _podiumItem(
               top: 40,
               right: 155,
               radius: 46,
               user: leaderboardUsers[0],
-              icon: Icons.emoji_events, // or Icons.military_tech
               color: Colors.amber,
             ),
             _podiumItem(
@@ -121,7 +112,6 @@ class _ProfilePageState extends State<ProfilePage> {
               left: 45,
               radius: 34,
               user: leaderboardUsers[1],
-              icon: Icons.emoji_events,
               color: Colors.grey,
             ),
             _podiumItem(
@@ -129,8 +119,7 @@ class _ProfilePageState extends State<ProfilePage> {
               right: 70,
               radius: 34,
               user: leaderboardUsers[2],
-              icon: Icons.emoji_events,
-              color: const Color(0xffcd7f32), // bronze
+              color: const Color(0xffcd7f32),
             ),
           ]
         ],
@@ -138,63 +127,57 @@ class _ProfilePageState extends State<ProfilePage> {
     );
   }
 
-  // -------- Widgets ---------
-
   Widget _leaderboardRow(LeaderboardUser user) {
     return Padding(
       padding: const EdgeInsets.only(bottom: 12),
       child: Row(
         children: [
-          // Rang
-          Text('${user.rank}',
-              style:
-              const TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+          Text('${user.rank}', style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
           const SizedBox(width: 15),
-          // Icône à la place de l'avatar
-          const Icon(Icons.person_pin_circle, size: 32, color: Colors.black54),
-          const SizedBox(width: 15),
-          // Nom
-          Expanded(
-            child: Text(user.firstName,
-                overflow: TextOverflow.ellipsis,
-                style:
-                const TextStyle(fontSize: 17, fontWeight: FontWeight.w500)),
+          CircleAvatar(
+            radius: 18,
+            backgroundImage: user.userUuid.isNotEmpty
+                ? NetworkImage('http://10.0.6.2:3000/user-pictures/${user.userUuid}/profile_picture.webp')
+                : null,
+            child: user.userUuid.isEmpty ? const Icon(Icons.person, color: Colors.white) : null,
+            backgroundColor: Colors.grey[300],
           ),
-          // Points
+          const SizedBox(width: 15),
+          Expanded(
+            child: Text(
+              user.firstName,
+              overflow: TextOverflow.ellipsis,
+              style: const TextStyle(fontSize: 17, fontWeight: FontWeight.w500),
+            ),
+          ),
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 5),
             decoration: BoxDecoration(
-                color: Colors.black12,
-                borderRadius: BorderRadius.circular(50)),
+              color: Colors.black12,
+              borderRadius: BorderRadius.circular(50),
+            ),
             child: Row(
               children: [
                 const RotatedBox(
                   quarterTurns: 1,
-                  child: Icon(Icons.back_hand,
-                      size: 14, color: Color.fromARGB(255, 255, 187, 0)),
+                  child: Icon(Icons.back_hand, size: 14, color: Color.fromARGB(255, 255, 187, 0)),
                 ),
                 const SizedBox(width: 5),
-                Text('${user.points}',
-                    style: const TextStyle(
-                        fontWeight: FontWeight.bold,
-                        fontSize: 12,
-                        color: Colors.black)),
+                Text('${user.points}', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 12, color: Colors.black)),
               ],
             ),
-          )
+          ),
         ],
       ),
     );
   }
 
-  // Item podium (top3)
   Positioned _podiumItem({
     required double top,
     double? left,
     double? right,
     required double radius,
     required LeaderboardUser user,
-    required IconData icon,
     required Color color,
   }) {
     return Positioned(
@@ -205,32 +188,35 @@ class _ProfilePageState extends State<ProfilePage> {
         children: [
           CircleAvatar(
             radius: radius,
+            backgroundImage: user.userUuid.isNotEmpty
+                ? NetworkImage('http://10.0.6.2:3000/user-pictures/${user.userUuid}/profile_picture.webp')
+                : null,
+            child: user.userUuid.isEmpty ? const Icon(Icons.person, size: 32, color: Colors.white) : null,
             backgroundColor: color.withOpacity(0.2),
-            child: Icon(icon, size: radius, color: color),
           ),
           const SizedBox(height: 6),
-          Text(user.firstName,
-              overflow: TextOverflow.ellipsis,
-              style: const TextStyle(
-                  fontWeight: FontWeight.bold, fontSize: 16)),
+          Text(
+            user.firstName,
+            overflow: TextOverflow.ellipsis,
+            style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+          ),
           const SizedBox(height: 4),
           Container(
             height: 25,
             padding: const EdgeInsets.symmetric(horizontal: 10),
             decoration: BoxDecoration(
-                color: Colors.black54,
-                borderRadius: BorderRadius.circular(50)),
+              color: Colors.black54,
+              borderRadius: BorderRadius.circular(50),
+            ),
             child: Row(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                const Icon(Icons.back_hand,
-                    size: 14, color: Color.fromARGB(255, 255, 187, 0)),
+                const Icon(Icons.back_hand, size: 14, color: Color.fromARGB(255, 255, 187, 0)),
                 const SizedBox(width: 5),
-                Text('${user.points}',
-                    style: const TextStyle(
-                        color: Colors.white,
-                        fontWeight: FontWeight.bold,
-                        fontSize: 10)),
+                Text(
+                  '${user.points}',
+                  style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 10),
+                ),
               ],
             ),
           ),
